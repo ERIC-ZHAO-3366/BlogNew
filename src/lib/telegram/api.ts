@@ -32,7 +32,7 @@ export async function fetchTelegramHtml(
   }
 
   const host = getEnv(Astro, "TELEGRAM_HOST") ?? "t.me";
-  const channel = getEnv(Astro, "CHANNEL");
+  const channel = getEnv(Astro, "CHANNEL")
 
   if (!channel) {
     throw new Error("CHANNEL environment variable is not set.");

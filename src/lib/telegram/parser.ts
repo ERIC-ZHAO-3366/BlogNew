@@ -42,7 +42,8 @@ function parseVideos(item: Cheerio<Element>, $: CheerioAPI): MediaFile[] {
   });
   return videos;
 }
-function parseStickers(item: Cheerio<Element>, $: CheerioAPI): MediaFile[] {
+
+  function parseStickers(item: Cheerio<Element>, $: CheerioAPI): MediaFile[] {
   return item.find(".tgme_widget_message_sticker, .emoji").map((_, s) => {
     const el = $(s);
     // 支持 <emoji src="..."> 、 style="background-image:url('...')" 以及 <img src="...">

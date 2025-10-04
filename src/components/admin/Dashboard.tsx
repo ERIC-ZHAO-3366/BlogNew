@@ -148,7 +148,7 @@ const Dashboard: React.FC = () => {
               )}
               icon="ri-heart-3-line"
             />
-            <StatCard title="短链总访问量" value={stats.sink.totalViews} details="来自 saro.pub 的统计" icon="ri-links-line" />
+            <StatCard title="短链总访问量" value={stats.sink.totalViews} details="来自 shinji.ren 的统计" icon="ri-links-line" />
           </>
         )}
       </div>

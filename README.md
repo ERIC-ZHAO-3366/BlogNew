@@ -133,8 +133,9 @@ SINK_PUBLIC_URL=<你的 Sink 服务公开访问 URL>
 SINK_API_KEY=<你的 Sink 服务 API 密钥>
 
 # Telegram图片代理
-# 用于某些地区无法直接访问 Telegram 图片资源的情况
+# 用于某些地区无法直接访问 Telegram 图片、视频、表情资源的情况
 STATIC_PROXY=<你的图片代理 URL，默认 https://cdn5.telesco.pe>
+STICKER_PROXY=<你的表情代理URL，默认 https://telegram.org>
 ```
 
 ---

@@ -7,6 +7,10 @@ const STATIC_PROXY =
   (import.meta as any)?.env?.STATIC_PROXY ||
   (typeof process !== "undefined" ? (process as any)?.env?.STATIC_PROXY : undefined) ||
   "https://cdn5.telesco.pe";
+const STICKER_PROXY =
+  (import.meta as any)?.env?.STICKER_PROXY ||
+  (typeof process !== "undefined" ? (process as any)?.env?.STICKER_PROXY : undefined) ||
+  "https://telegram.org";
 function parseImages(item: Cheerio<Element>, $: CheerioAPI): MediaFile[] {
   return item.find(".tgme_widget_message_photo_wrap").map((_, photo) => {
     const rawUrl = $(photo).attr("style")?.match(/url\(["'](.*?)["']/)?.[1];
@@ -38,7 +42,15 @@ function parseVideos(item: Cheerio<Element>, $: CheerioAPI): MediaFile[] {
   });
   return videos;
 }
-
+function parseStickers(item: Cheerio<Element>, $: CheerioAPI): MediaFile[] {
+  return item.find(".tgme_widget_message_sticker").map((_, s) => {
+    const imgSrc = $(s).find("img").attr("src")
+      || $(s).attr("style")?.match(/url\(["'](.*?)["']/)?.[1];
+    const filePath = imgSrc?.match(/\/file\/.+/i)?.[0];
+    const url = filePath ? `${STICKER_PROXY}${filePath}` : imgSrc;
+    return url ? { type: "image", url, alt: "sticker" } : null;
+  }).get().filter(Boolean) as MediaFile[];
+}
 function parseLinkPreview(item: Cheerio<Element>, $: CheerioAPI): LinkPreview | undefined {
   const link = item.find(".tgme_widget_message_link_preview");
   const url = link.attr("href");
@@ -57,7 +69,6 @@ function parseLinkPreview(item: Cheerio<Element>, $: CheerioAPI): LinkPreview | 
     return undefined;
   }
 }
-
 function parseReply(item: Cheerio<Element>, $: CheerioAPI, channel: string): Reply | undefined {
   const reply = item.find(".tgme_widget_message_reply");
   if (reply.length === 0)
@@ -144,7 +155,7 @@ export function parsePost(element: Element, $: CheerioAPI, channel: string): Tel
     text: item.find(".tgme_widget_message_text").text() || "",
     htmlContent: (textElement.html() || "") + unsupportedMediaHtml,
     views: item.find(".tgme_widget_message_views").text() || "0",
-    media: [...parseImages(item, $), ...parseVideos(item, $)],
+    media: [...parseImages(item, $), ...parseVideos(item, $), ...parseStickers(item, $)],
     linkPreview: parseLinkPreview(item, $),
     reply: parseReply(item, $, channel),
   };

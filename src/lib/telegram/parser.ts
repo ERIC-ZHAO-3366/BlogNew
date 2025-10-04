@@ -43,15 +43,6 @@ function parseVideos(item: Cheerio<Element>, $: CheerioAPI): MediaFile[] {
   return videos;
 }
 function parseStickers(item: Cheerio<Element>, $: CheerioAPI): MediaFile[] {
-  return item.find(".tgme_widget_message_sticker").map((_, s) => {
-    const emojiSrc = $(s).find("emoji").attr("src")
-      || $(s).attr("style")?.match(/url\(["'](.*?)["']/)?.[1];
-    const filePath = emojiSrc?.match(/\/img\/.+/i)?.[0];
-    const url = filePath ? `${STICKER_PROXY}${filePath}` : emojiSrc;
-    return url ? { type: "emoji", url, alt: "sticker" } : null;
-  }).get().filter(Boolean) as MediaFile[];
-}
-function parseStickers(item: Cheerio<Element>, $: CheerioAPI): MediaFile[] {
   return item.find(".tgme_widget_message_sticker, .emoji").map((_, s) => {
     const el = $(s);
     // 支持 <emoji src="..."> 、 style="background-image:url('...')" 以及 <img src="...">

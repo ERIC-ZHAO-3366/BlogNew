@@ -51,6 +51,35 @@ function parseStickers(item: Cheerio<Element>, $: CheerioAPI): MediaFile[] {
     return url ? { type: "emoji", url, alt: "sticker" } : null;
   }).get().filter(Boolean) as MediaFile[];
 }
+function parseStickers(item: Cheerio<Element>, $: CheerioAPI): MediaFile[] {
+  return item.find(".tgme_widget_message_sticker, .emoji").map((_, s) => {
+    const el = $(s);
+    // 支持 <emoji src="..."> 、 style="background-image:url('...')" 以及 <img src="...">
+    const emojiTagSrc = el.find("emoji").attr("src");
+    const imgSrc = el.find("img").attr("src");
+    const styleSrc = el.attr("style")?.match(/url\(["']?(.*?)["']?\)/i)?.[1];
+    const raw = emojiTagSrc || styleSrc || imgSrc || undefined;
+
+    if (!raw) return null;
+
+    // 如果是 /img/... 这类路径，用 STICKER_PROXY 拼接；否则保留原始链接（处理协议相对 // 的情况）
+    const filePath = raw.match(/\/img\/.+/i)?.[0];
+    let url: string | undefined;
+    if (filePath) {
+      // 确保 STICKER_PROXY 有协议（若以 // 开头保留，后续使用时客户端会以 https: 解析）
+      if (/^\/\//.test(STICKER_PROXY) || /^https?:\/\//i.test(STICKER_PROXY)) {
+        url = `${STICKER_PROXY.replace(/\/$/, "")}${filePath}`;
+      } else {
+        url = `https://${STICKER_PROXY.replace(/\/$/, "")}${filePath}`;
+      }
+    } else {
+      // 协议相对链接转为 https 开头，其他保持不变
+      url = raw.startsWith("//") ? `https:${raw}` : raw;
+    }
+
+    return url ? { type: "emoji", url, alt: "sticker" } : null;
+  }).get().filter(Boolean) as MediaFile[];
+}
 function parseLinkPreview(item: Cheerio<Element>, $: CheerioAPI): LinkPreview | undefined {
   const link = item.find(".tgme_widget_message_link_preview");
   const url = link.attr("href");

@@ -10,7 +10,7 @@ const STATIC_PROXY =
 const STICKER_PROXY =
   (import.meta as any)?.env?.STICKER_PROXY ||
   (typeof process !== "undefined" ? (process as any)?.env?.STICKER_PROXY : undefined) ||
-  "https://telegram.org";
+  "//telegram.org";
 function parseImages(item: Cheerio<Element>, $: CheerioAPI): MediaFile[] {
   return item.find(".tgme_widget_message_photo_wrap").map((_, photo) => {
     const rawUrl = $(photo).attr("style")?.match(/url\(["'](.*?)["']/)?.[1];
@@ -44,11 +44,11 @@ function parseVideos(item: Cheerio<Element>, $: CheerioAPI): MediaFile[] {
 }
 function parseStickers(item: Cheerio<Element>, $: CheerioAPI): MediaFile[] {
   return item.find(".tgme_widget_message_sticker").map((_, s) => {
-    const imgSrc = $(s).find("img").attr("src")
+    const emojiSrc = $(s).find("emoji").attr("src")
       || $(s).attr("style")?.match(/url\(["'](.*?)["']/)?.[1];
-    const filePath = imgSrc?.match(/\/file\/.+/i)?.[0];
-    const url = filePath ? `${STICKER_PROXY}${filePath}` : imgSrc;
-    return url ? { type: "image", url, alt: "sticker" } : null;
+    const filePath = emojiSrc?.match(/\/img\/.+/i)?.[0];
+    const url = filePath ? `${STICKER_PROXY}${filePath}` : emojiSrc;
+    return url ? { type: "emoji", url, alt: "sticker" } : null;
   }).get().filter(Boolean) as MediaFile[];
 }
 function parseLinkPreview(item: Cheerio<Element>, $: CheerioAPI): LinkPreview | undefined {

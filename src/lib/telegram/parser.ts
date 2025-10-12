@@ -7,7 +7,7 @@ const STATIC_PROXY =
   (import.meta as any)?.env?.STATIC_PROXY ||
   (typeof process !== "undefined" ? (process as any)?.env?.STATIC_PROXY : undefined) ||
   "https://cdn5.telesco.pe";
-
+//暂时未找到贴纸在哪里替换，先留着
 const STICKER_PROXY =
   (import.meta as any)?.env?.STICKER_PROXY ||
   (typeof process !== "undefined" ? (process as any)?.env?.STICKER_PROXY : undefined) ||
@@ -139,24 +139,29 @@ export function parsePost(element: Element, $: CheerioAPI, channel: string): Tel
 
   textElement.find(".tgme_widget_message_photo_wrap, .tgme_widget_message_video_wrap").remove();
 
+  // 将 textElement 中 class="emoji" 的元素内 telegram.org 替换为 STICKER_PROXY（回退 STATIC_PROXY）
+  textElement.find(".emoji").each((_, el) => {
+    const $el = $(el);
+    const proxy = STICKER_PROXY || 'telegram.org';
+
+    // 替换 style 中的 URL（例如 background-image:url('//telegram.org/..')）
+    const style = $el.attr("style");
+    if (style && style.includes("telegram.org")) {
+      const newStyle = style.replace(/(\/\/|https?:\/\/)?telegram\.org/gi, (_m, prefix) => {
+        if (/^\/\//.test(proxy) || /^https?:\/\//i.test(proxy)) {
+          // 若 proxy 含协议或是协议相对，直接使用 proxy（保留形式）
+          if (prefix && prefix.startsWith("//") && /^\/\//.test(proxy)) return proxy;
+          return proxy;
+        }
+        // proxy 不含协议：若原来是协议相对则保留 //，否则使用 https://
+        if (prefix && prefix.startsWith("//")) return `//${proxy}`;
+        return `https://${proxy}`;
+      });
+      $el.attr("style", newStyle);
+    }
+  });
   const unsupportedMediaHtml = parseUnsupportedMedia(item, $, postLink);
 
-  // 若 textElement 中含有 telegram.org，则用 STICKER_PROXY 替换其出现的主机名
-  let textHtml = textElement.html() || "";
-  if (textHtml.includes("telegram.org")) {
-    const proxy = STICKER_PROXY || STATIC_PROXY;
-    textHtml = textHtml.replace(/(\/\/|https?:\/\/)?telegram\.org/gi, (_match, prefix) => {
-      // 如果 STICKER_PROXY 已包含协议或是协议相对 (//)，直接使用
-      if (/^\/\//.test(proxy) || /^https?:\/\//i.test(proxy)) {
-        // 保留原来是协议相对的形式（如果原来是 // 开头），否则使用 proxy 原样
-        if (prefix && prefix.startsWith("//") && /^\/\//.test(proxy)) return proxy;
-        return proxy;
-      }
-      // proxy 不含协议：若原文为协议相对则返回 //proxy，否则返回 https://proxy
-      if (prefix && prefix.startsWith("//")) return `//${proxy}`;
-      return `https://${proxy}`;
-    });
-  }
 
   return {
     id,

@@ -7,10 +7,11 @@ const STATIC_PROXY =
   (import.meta as any)?.env?.STATIC_PROXY ||
   (typeof process !== "undefined" ? (process as any)?.env?.STATIC_PROXY : undefined) ||
   "https://cdn5.telesco.pe";
+
 const STICKER_PROXY =
   (import.meta as any)?.env?.STICKER_PROXY ||
   (typeof process !== "undefined" ? (process as any)?.env?.STICKER_PROXY : undefined) ||
-  "//telegram.org";
+  "telegram.org";
 function parseImages(item: Cheerio<Element>, $: CheerioAPI): MediaFile[] {
   return item.find(".tgme_widget_message_photo_wrap").map((_, photo) => {
     const rawUrl = $(photo).attr("style")?.match(/url\(["'](.*?)["']/)?.[1];
@@ -43,43 +44,6 @@ function parseVideos(item: Cheerio<Element>, $: CheerioAPI): MediaFile[] {
   return videos;
 }
 
-function parseStickers(item: Cheerio<Element>, $: CheerioAPI): MediaFile[] {
-  // 解析单个贴纸/表情的 URL
-  const resolveStickerUrl = (raw?: string): string | undefined => {
-    if (!raw) return undefined;
-    // 已含协议的绝对链接，保留
-    if (/^https?:\/\//i.test(raw)) return raw;
-    // 协议相对链接（//...），转为 https:
-    if (/^\/\//.test(raw)) return `https:${raw}`;
-    // /img/... 路径，使用 STICKER_PROXY 拼接
-    const imgPath = raw.match(/\/img\/.+/i)?.[0];
-    if (imgPath) {
-      if (/^\/\//.test(STICKER_PROXY) || /^https?:\/\//i.test(STICKER_PROXY)) {
-        return `${STICKER_PROXY.replace(/\/$/, "")}${imgPath}`;
-      }
-    }
-    // /file/... 路径回退到 STATIC_PROXY
-    const filePath = raw.match(/\/file\/.+/i)?.[0];
-    if (filePath) return `${STATIC_PROXY}${filePath}`;
-    // 其它相对或不规则地址，原样返回（上层可决定）
-    return raw;
-  };
-
-  return item
-    .find(".tgme_widget_message_sticker, .emoji")
-    .map((_, s) => {
-      const el = $(s);
-      const emojiTagSrc = el.find("emoji").attr("src");
-      const imgSrc = el.find("img").attr("src");
-      const styleSrc = el.attr("style")?.match(/url\(["']?(.*?)["']?\)/i)?.[1];
-      const raw = emojiTagSrc || styleSrc || imgSrc || undefined;
-
-      const url = resolveStickerUrl(raw);
-      return url ? { type: "emoji", style: `background-image:url('${url}')` } : null;
-    })
-    .get()
-    .filter(Boolean) as unknown as MediaFile[];
-}
 function parseLinkPreview(item: Cheerio<Element>, $: CheerioAPI): LinkPreview | undefined {
   const link = item.find(".tgme_widget_message_link_preview");
   const url = link.attr("href");
@@ -176,6 +140,23 @@ export function parsePost(element: Element, $: CheerioAPI, channel: string): Tel
   textElement.find(".tgme_widget_message_photo_wrap, .tgme_widget_message_video_wrap").remove();
 
   const unsupportedMediaHtml = parseUnsupportedMedia(item, $, postLink);
+
+  // 若 textElement 中含有 telegram.org，则用 STICKER_PROXY 替换其出现的主机名
+  let textHtml = textElement.html() || "";
+  if (textHtml.includes("telegram.org")) {
+    const proxy = STICKER_PROXY || STATIC_PROXY;
+    textHtml = textHtml.replace(/(\/\/|https?:\/\/)?telegram\.org/gi, (_match, prefix) => {
+      // 如果 STICKER_PROXY 已包含协议或是协议相对 (//)，直接使用
+      if (/^\/\//.test(proxy) || /^https?:\/\//i.test(proxy)) {
+        // 保留原来是协议相对的形式（如果原来是 // 开头），否则使用 proxy 原样
+        if (prefix && prefix.startsWith("//") && /^\/\//.test(proxy)) return proxy;
+        return proxy;
+      }
+      // proxy 不含协议：若原文为协议相对则返回 //proxy，否则返回 https://proxy
+      if (prefix && prefix.startsWith("//")) return `//${proxy}`;
+      return `https://${proxy}`;
+    });
+  }
 
   return {
     id,

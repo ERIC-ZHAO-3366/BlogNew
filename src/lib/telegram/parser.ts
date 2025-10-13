@@ -7,11 +7,6 @@ const STATIC_PROXY =
   (import.meta as any)?.env?.STATIC_PROXY ||
   (typeof process !== "undefined" ? (process as any)?.env?.STATIC_PROXY : undefined) ||
   "https://cdn5.telesco.pe";
-//暂时未找到贴纸在哪里替换，先留着
-const STICKER_PROXY =
-  (import.meta as any)?.env?.STICKER_PROXY ||
-  (typeof process !== "undefined" ? (process as any)?.env?.STICKER_PROXY : undefined) ||
-  "telegram.org";
 function parseImages(item: Cheerio<Element>, $: CheerioAPI): MediaFile[] {
   return item.find(".tgme_widget_message_photo_wrap").map((_, photo) => {
     const rawUrl = $(photo).attr("style")?.match(/url\(["'](.*?)["']/)?.[1];

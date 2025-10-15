@@ -4,7 +4,7 @@ export const ADMIN_USER = {
   nickname: "EricZhao",
   email: "ericzhao3366@dingtalk.com",
   website: "https://blog.ericzhao3366.work",
-  avatar: "./avatar.webp",
+  avatar: "/avatar.webp",
 };
 
 // 你不希望用户使用的名称与邮箱

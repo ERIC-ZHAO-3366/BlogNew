@@ -59,6 +59,7 @@ export default defineConfig({
 ```
 
 当然，这很可能于事无补，详见：https://www.saroprock.com/post/297
+Tencent Cloud EdgeOne Page not support Astro  SSR 
 
 ---
 

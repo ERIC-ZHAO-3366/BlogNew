@@ -39,7 +39,7 @@ function parseVideos(item: Cheerio<Element>, $: CheerioAPI): MediaFile[] {
   return videos;
 }
 
-function parseLinkPreview(item: Cheerio<Element>, $: CheerioAPI): LinkPreview | undefined {
+function parseLinkPreview(item: Cheerio<Element>, _: CheerioAPI): LinkPreview | undefined {
   const link = item.find(".tgme_widget_message_link_preview");
   const url = link.attr("href");
   if (!url)
@@ -47,7 +47,7 @@ function parseLinkPreview(item: Cheerio<Element>, $: CheerioAPI): LinkPreview | 
 
   const title = link.find(".link_preview_title").text() || link.find(".link_preview_site_name").text();
   const description = link.find(".link_preview_description").text();
-  const imageSrc = link.find(".link_preview_image")?.attr("style")?.match(/url\(["'](.*?)["']/i)?.[1];
+  const imageSrc = link.find(".link_preview_image")?.attr("style")?.match(/url\(["'](.*?)["']\)/i)?.[1];
 
   try {
     const hostname = new URL(url).hostname;
@@ -62,15 +62,44 @@ function parseReply(item: Cheerio<Element>, $: CheerioAPI, channel: string): Rep
   const reply = item.find(".tgme_widget_message_reply");
   if (reply.length === 0)
     return undefined;
+  
+  reply.find("i.emoji").each((_, el) => {
+    $(el).removeAttr("style");
+  });
 
   const href = reply.attr("href");
   if (!href)
     return undefined;
 
-  const id = href.split("/").pop() || "";
-  const author = reply.find(".tgme_widget_message_author_name").text() || "未知用户";
+ // 解析目标频道与 ID
+  let targetChannel = channel;
+  let targetId = "";
+  let finalUrl = "";
+  let isExternal = false;
 
-  let text = reply.text().replace(author, "").trim();
+  if (href.startsWith("https://t.me/")) {
+    const match = href.match(/^https:\/\/t\.me\/([^/]+)\/(\d+)/);
+    if (match) {
+      targetChannel = match[1];
+      targetId = match[2];
+      finalUrl = href; // 保留完整外部链接
+      isExternal = targetChannel !== channel;
+    }
+  }
+  else if (href.startsWith("/")) {
+    const parts = href.split("/");
+    targetId = parts.pop() || "";
+    finalUrl = `/post/${targetId}`;
+  }
+
+  // 作者
+  const author = reply.find(".tgme_widget_message_author_name").text()?.trim() || targetChannel || "未知用户";
+
+    // 回复文本（HTML）
+  const textHtml = reply.find(".tgme_widget_message_text").html()?.trim() || "";
+
+  // 如果没有文本，检查是否是图片、视频等
+  let text = textHtml;
 
   if (!text) {
     if (reply.find(".tgme_widget_message_photo").length > 0)
@@ -79,13 +108,22 @@ function parseReply(item: Cheerio<Element>, $: CheerioAPI, channel: string): Rep
       text = "[贴纸]";
     else if (reply.find(".tgme_widget_message_video").length > 0)
       text = "[视频]";
-    else text = "...";
+    else
+      text = "...";
   }
 
+   // 缩略图
+  const thumbStyle = reply.find(".tgme_widget_message_reply_thumb").attr("style");
+  const thumb = thumbStyle?.match(/url\(['"]?(.*?)['"]?\)/)?.[1];
+
   return {
-    url: `/post/${id}`,
+    url: finalUrl,,
     author,
-    text,
+    html: text,
+    thumb,
+    isExternal,
+    targetChannel,
+    targetId,
   };
 }
 
@@ -121,7 +159,7 @@ export function parsePost(element: Element, $: CheerioAPI, channel: string): Tel
   const datetime = item.find(".tgme_widget_message_date time")?.attr("datetime") || "";
   const formattedDate = datetime ? dayjs(datetime).tz("Asia/Shanghai").fromNow() : "未知时间";
 
-  const textElement = item.find(".tgme_widget_message_text").clone();
+  const textElement = item.find(".tgme_widget_message_text").filter((_, el) => !el.attribs.class.includes("js-message_reply_text")).clone();
 
   textElement.find("a").each((_, el) => {
     const link = $(el);
@@ -134,6 +172,10 @@ export function parsePost(element: Element, $: CheerioAPI, channel: string): Tel
   });
 
   textElement.find(".tgme_widget_message_photo_wrap, .tgme_widget_message_video_wrap").remove();
+
+  textElement.find("i.emoji").each((_, el) => {
+    $(el).removeAttr("style");
+  });
 
   const unsupportedMediaHtml = parseUnsupportedMedia(item, $, postLink);
 

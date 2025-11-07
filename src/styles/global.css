@@ -24,6 +24,9 @@
   font-display: swap;
   font-style: normal;
 }
+pre {
+  @apply mockup-code;
+}
 
 code {
   font-family: "Maple", monospace;
@@ -100,4 +103,12 @@ code {
 
 .animate-like-pulse {
   animation: like-pulse 0.4s ease-in-out;
+}
+i.emoji {
+  font-style: normal !important;
+  vertical-align: middle;
+}
+
+.katex-display {
+    @apply overflow-x-auto;
 }

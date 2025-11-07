@@ -58,7 +58,9 @@ const LikeButton: React.FC<Props> = ({ postId }) => {
 
     fetchInitialState();
 
-    return () => { isMounted = false; };
+     return () => {
+      isMounted = false;
+    };
   }, [postId]);
 
   const handleClick = async () => {
@@ -71,7 +73,7 @@ const LikeButton: React.FC<Props> = ({ postId }) => {
 
     // 1. 乐观更新 UI
     setHasLiked(newLikedState);
-    setLikeCount(prev => newLikedState ? prev + 1 : Math.max(0, prev - 1));
+    setLikeCount((prev) => newLikedState ? prev + 1 : Math.max(0, prev - 1));
 
     // 2. 更新本地存储
     const likedPosts = new Set<string>(JSON.parse(localStorage.getItem(storageKey) || "[]"));
@@ -102,7 +104,7 @@ const LikeButton: React.FC<Props> = ({ postId }) => {
       console.error("Failed to submit like:", error);
       // 回滚 UI
       setHasLiked(!newLikedState);
-      setLikeCount(prev => newLikedState ? prev - 1 : prev + 1);
+      setLikeCount((prev) => newLikedState ? prev - 1 : prev + 1);
     }
     finally {
       setIsSubmitting(false);

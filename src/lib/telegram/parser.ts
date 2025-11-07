@@ -117,7 +117,7 @@ function parseReply(item: Cheerio<Element>, $: CheerioAPI, channel: string): Rep
   const thumb = thumbStyle?.match(/url\(['"]?(.*?)['"]?\)/)?.[1];
 
   return {
-    url: finalUrl,,
+    url: finalUrl,
     author,
     html: text,
     thumb,
